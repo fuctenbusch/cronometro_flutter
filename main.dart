@@ -1,136 +1,70 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
+import 'package:flutter_mobx/flutter_mobx.dart';
+import 'package:mobx_timer/timer_store.dart';
 
-void main() {
-  runApp(CronometroApp());
-}
+void main() => runApp(MyApp());
 
-class CronometroApp extends StatelessWidget {
+class MyApp extends StatelessWidget {
+  final TimerStore _timerStore = TimerStore();
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Cronômetro App',
-      theme: ThemeData(
-        primarySwatch: Colors.brown,
-      ),
-      home: CronometroScreen(),
-    );
-  }
-}
-
-class CronometroScreen extends StatefulWidget {
-  @override
-  _CronometroScreenState createState() => _CronometroScreenState();
-}
-
-class _CronometroScreenState extends State<CronometroScreen> {
-  bool isRunning = false;
-  int seconds = 0;
-  List<String> marks = [];
-
-  void startTimer() {
-    setState(() {
-      isRunning = true;
-    });
-
-    Timer.periodic(Duration(seconds: 1), (timer) {
-      if (!isRunning) {
-        timer.cancel();
-      } else {
-        setState(() {
-          seconds++;
-        });
-      }
-    });
-  }
-
-  void stopTimer() {
-    setState(() {
-      isRunning = false;
-    });
-  }
-
-  void markTime() {
-    setState(() {
-      marks.add(_formatTime(seconds));
-    });
-  }
-
-  void resetTimer() {
-    setState(() {
-      isRunning = false;
-      seconds = 0;
-      marks.clear();
-    });
-  }
-
-  String _formatTime(int timeInSeconds) {
-    int minutes = timeInSeconds ~/ 60;
-    int seconds = timeInSeconds % 60;
-    return '$minutes:${seconds.toString().padLeft(2, '0')}';
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('Cronômetro'),
-      ),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
-            Text(
-              _formatTime(seconds),
-              style: TextStyle(fontSize: 60, fontWeight: FontWeight.bold),
-            ),
-            SizedBox(height: 20),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: <Widget>[
-                if (!isRunning)
-                  ElevatedButton(
-                    onPressed: startTimer,
-                    style: ElevatedButton.styleFrom(
-                      primary: Colors.black,
-                    ),
-                    child:
-                        Text('INICIAR', style: TextStyle(color: Colors.white)),
-                  ),
-                if (isRunning)
-                  ElevatedButton(
-                    onPressed: stopTimer,
-                    style: ElevatedButton.styleFrom(
-                      primary: Colors.grey,
-                    ),
-                    child: Text('PARAR', style: TextStyle(color: Colors.white)),
-                  ),
-                SizedBox(width: 20),
-                ElevatedButton(
-                  onPressed: markTime,
-                  style: ElevatedButton.styleFrom(
-                    primary: Colors.brown,
-                  ),
-                  child: Text('MARCAR', style: TextStyle(color: Colors.white)),
-                ),
-              ],
-            ),
-            SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: resetTimer,
-              style: ElevatedButton.styleFrom(
-                primary: Colors.brown,
+      home: Scaffold(
+        appBar: AppBar(
+          title: Text('Cronômetro'),
+        ),
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: <Widget>[
+              Observer(
+                builder: (_) => _timerStore.isRunning
+                    ? Text(
+                        _timerStore._formatTime(_timerStore.seconds),
+                        style: TextStyle(fontSize: 40),
+                      )
+                    : ElevatedButton(
+                        onPressed: _timerStore.startTimer,
+                        child: Text('INICIAR'),
+                      ),
               ),
-              child: Text('LIMPAR', style: TextStyle(color: Colors.white)),
-            ),
-            SizedBox(height: 20),
-            Column(
-              children: marks
-                  .map((mark) => Text(mark, style: TextStyle(fontSize: 20)))
-                  .toList(),
-            ),
-          ],
+              SizedBox(height: 20),
+              Observer(
+                builder: (_) {
+                  if (_timerStore.isRunning) {
+                    return Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: <Widget>[
+                        ElevatedButton(
+                          onPressed: _timerStore.stopTimer,
+                          child: Text('PARAR'),
+                        ),
+                        SizedBox(width: 20),
+                        ElevatedButton(
+                          onPressed: _timerStore.mark,
+                          child: Text('MARCAR'),
+                        ),
+                      ],
+                    );
+                  } else {
+                    return ElevatedButton(
+                      onPressed: _timerStore.resetTimer,
+                      child: Text('LIMPAR'),
+                    );
+                  }
+                },
+              ),
+              SizedBox(height: 20),
+              Observer(
+                builder: (_) => Column(
+                  children: _timerStore.marks
+                      .map((mark) => Text(mark, style: TextStyle(fontSize: 20)))
+                      .toList(),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
